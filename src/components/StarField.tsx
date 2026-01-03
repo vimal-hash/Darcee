@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
@@ -70,7 +70,7 @@ export default function StarField() {
       positions[i * 3] = star.position[0];
       positions[i * 3 + 1] = star.position[1];
       positions[i * 3 + 2] = star.position[2];
-      sizes[i] = star.scale * 50; // Size for point sprites
+      sizes[i] = star.scale * 50;
       alphas[i] = star.brightness;
     });
     
@@ -79,7 +79,6 @@ export default function StarField() {
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
     
-    // Custom shader material for glowing stars
     const material = new THREE.ShaderMaterial({
       uniforms: {
         color: { value: new THREE.Color(0xffffff) },
@@ -101,15 +100,12 @@ export default function StarField() {
         varying float vAlpha;
         
         void main() {
-          // Create circular point with soft glow
           vec2 center = gl_PointCoord - vec2(0.5);
           float dist = length(center);
           
-          // Soft glow falloff
           float alpha = 1.0 - smoothstep(0.0, 0.1, dist);
           alpha = pow(alpha, 2.0) * vAlpha;
           
-          // Add extra bright core
           float core = 1.0 - smoothstep(0.0, 0.10, dist);
           alpha += core * vAlpha * 0.5;
           
@@ -135,4 +131,48 @@ export default function StarField() {
   }, [starPoints]);
 
   return <group ref={groupRef} />;
+}
+
+// Lottie Animation Component for watch_sample7.json
+export function WatchAnimation() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [animationData, setAnimationData] = useState<any>(null);
+  const [lottie, setLottie] = useState<any>(null);
+
+  useEffect(() => {
+    // Dynamically import lottie-web
+    import('lottie-web').then((module) => {
+      setLottie(module.default);
+    });
+
+    // Fetch the animation data
+    fetch('/watch_sample7.json')
+      .then((response) => response.json())
+      .then((data) => setAnimationData(data))
+      .catch((error) => console.error('Error loading animation:', error));
+  }, []);
+
+  useEffect(() => {
+    if (!lottie || !animationData || !containerRef.current) return;
+
+    const anim = lottie.loadAnimation({
+      container: containerRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: animationData,
+    });
+
+    return () => {
+      anim.destroy();
+    };
+  }, [lottie, animationData]);
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="w-full h-full"
+      style={{ maxWidth: '100%', maxHeight: '100%' }}
+    />
+  );
 }
